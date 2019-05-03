@@ -32,11 +32,14 @@ Features:
  * Automated creation of new node and an associated custom path.
  * On-demand and automated periodic importing of data.
 
-For a full description of the module, visit the project page:
+The module's project page:
 https://www.drupal.org/project/sugar_aggregate
 
-To submit bug reports and feature suggestions, or to track changes:
-https://www.drupal.org/project/issues/sugar_aggregate
+To view full documentation, track changes, or contribute to development:
+https://github.com/djcvijic/drupal-sugar-aggregate#readme
+
+To submit bug reports and feature suggestions:
+https://github.com/djcvijic/drupal-sugar-aggregate/issues
 
 
 REQUIREMENTS
