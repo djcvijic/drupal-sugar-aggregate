@@ -1,0 +1,12 @@
+#sugar-aggregate-form .form-item-cron-periodLabel {
+  display: inline-block;
+  margin-right: 10px;
+}
+#sugar-aggregate-form .form-item-cron-periodAmount {
+  display: inline-block;
+  margin-right: 10px;
+}
+#sugar-aggregate-form .form-item-cron-periodUnit {
+  display: inline-block;
+  margin-right: 10px;
+}

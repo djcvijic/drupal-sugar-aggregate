@@ -1,0 +1,141 @@
+<?php
+
+/**
+ * @file
+ * Module file for sugar_aggregate.
+ */
+
+/**
+ * Implements hook_admin_paths().
+ */
+function sugar_aggregate_admin_paths() {
+  $paths = array(
+    'admin/sugar_aggregate' => TRUE,
+    'admin/sugar_aggregate/config' => TRUE,
+    'admin/sugar_aggregate/add' => TRUE,
+    'admin/sugar_aggregate/*/import' => TRUE,
+    'admin/sugar_aggregate/*/edit' => TRUE,
+    'admin/sugar_aggregate/*/delete' => TRUE,
+  );
+  return $paths;
+}
+
+/**
+ * Implements hook_cron().
+ */
+function sugar_aggregate_cron() {
+  module_load_include('inc', 'sugar_aggregate', 'includes/SugarCommunicator');
+  module_load_include('inc', 'sugar_aggregate', 'includes/SugarAggregator');
+  $communicator = SugarCommunicator::instance();
+  $aggregator = new SugarAggregator();
+  
+  $result = db_query('SELECT * FROM {sugar_aggregate}')->fetchAll();
+  foreach ($result as $record) {
+    $cron = json_decode($record->cron);
+    if (empty($cron) || !$cron->enabled || empty($cron->periodUnit) || empty($cron->periodAmount)) {
+      continue;
+    }
+
+    $period_seconds = $cron->periodAmount;
+    switch ($cron->periodUnit) {
+      case 'hours':
+        $period_seconds *= 60 * 60;
+        break;
+      case 'days':
+        $period_seconds *= 60 * 60 * 24;
+        break;
+    }
+    $next_import = $record->imported + $period_seconds;
+    $now = time();
+    if ($next_import > $now) {
+      continue;
+    }
+
+    $content_body = $communicator->import($record);
+    if (!empty($content_body)) {
+      $node_id = $aggregator->process($record, $content_body, FALSE);
+    }
+  }
+}
+
+/**
+ * Implements hook_help().
+ */
+function sugar_aggregate_help($path, $arg) {
+  switch ($path) {
+    case 'admin/help#sugar_aggregate':
+      $readme = file_get_contents(dirname(__FILE__) . '/README.md');
+      if (!module_exists('markdown')) {
+        return "<pre>$readme</pre>";
+      }
+      $filters = module_invoke('markdown', 'filter_info');
+      $info = $filters['filter_markdown'];
+      if (!function_exists($info['process callback'])) {
+        return "<pre>$readme</pre>";
+      }
+      return $info['process callback']($readme, NULL);
+  }
+}
+
+/**
+ * Implements hook_menu().
+ */
+function sugar_aggregate_menu() {
+  return array(
+    'admin/sugar_aggregate' => array(
+      'title' => 'Sugar Aggregate',
+      'page callback' => 'sugar_aggregate_index',
+      'access arguments' => array('administer sugar_aggregate'),
+      'file' => 'sugar_aggregate.pages.inc',
+    ),
+    'admin/sugar_aggregate/config' => array(
+      'title' => 'Configure Sugar Aggregate',
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('sugar_aggregate_config_form'),
+      'access arguments' => array('administer sugar_aggregate'),
+      'file' => 'sugar_aggregate.pages.inc',
+    ),
+    'admin/sugar_aggregate/add' => array(
+      'title' => 'Add Sugar Aggregate',
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('sugar_aggregate_form'),
+      'access arguments' => array('administer sugar_aggregate'),
+      'file' => 'sugar_aggregate.pages.inc',
+    ),
+    'admin/sugar_aggregate/%/import' => array(
+      'title' => 'Import Sugar Aggregate',
+      'page callback' => 'sugar_aggregate_import',
+      'page arguments' => array(2),
+      'access arguments' => array('administer sugar_aggregate'),
+      'file' => 'sugar_aggregate.pages.inc',
+      'type' => MENU_CALLBACK,
+    ),
+    'admin/sugar_aggregate/%/edit' => array(
+      'title' => 'Edit Sugar Aggregate',
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('sugar_aggregate_form', 2),
+      'access arguments' => array('administer sugar_aggregate'),
+      'file' => 'sugar_aggregate.pages.inc',
+      'type' => MENU_CALLBACK,
+    ),
+    'admin/sugar_aggregate/%/delete' => array(
+      'title' => 'Delete Sugar Aggregate',
+      'page callback' => 'sugar_aggregate_delete',
+      'page arguments' => array(2),
+      'access arguments' => array('administer sugar_aggregate'),
+      'file' => 'sugar_aggregate.pages.inc',
+      'type' => MENU_CALLBACK,
+    ),
+  );
+}
+
+/**
+ * Implements hook_permission().
+ */
+function sugar_aggregate_permission() {
+  return array(
+    'administer sugar_aggregate' => array(
+      'title' => t('Administer Sugar Aggregate'),
+    ),
+  );
+}

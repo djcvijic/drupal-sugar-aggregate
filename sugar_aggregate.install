@@ -1,0 +1,155 @@
+<?php
+
+/**
+ * @file
+ * Install file for sugar_aggregate.
+ */
+
+/**
+ * Implements hook_install().
+ */
+function sugar_aggregate_install() {
+  drupal_set_message(check_plain(st('Sugar Aggregate settings are available under !link', 
+    array('!link' => l(st('Administration >> Sugar Aggregate'),  'admin/sugar_aggregate'))
+  )));
+}
+
+/**
+ * Implements hook_schema().
+ */
+function sugar_aggregate_schema() {
+  return array(
+    'sugar_aggregate' => array(
+      'description' => 'Configuration of a Sugar Aggregate.',
+      'fields' => array(
+        'id' => array(
+          'type' => 'serial',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+          'description' => 'Id of the Sugar Aggregate.',
+        ),
+        'sugar_query' => array(
+          'type' => 'blob',
+          'size' => 'big',
+          'not null' => TRUE,
+          'description' => 'Configuration of the SugarCrm API query.',
+          'serialize' => TRUE,
+        ),
+        'skip_conditions' => array(
+          'type' => 'blob',
+          'size' => 'big',
+          'not null' => TRUE,
+          'description' => 'Set of conditions, if any of them if met for an item, that item should be skipped.',
+          'serialize' => TRUE,
+        ),
+        'content_title' => array(
+          'type' => 'text',
+          'not null' => TRUE,
+          'description' => 'Title of the node content.',
+        ),
+        'content_summary' => array(
+          'type' => 'blob',
+          'size' => 'big',
+          'not null' => TRUE,
+          'description' => 'Summary of the node content.',
+          'serialize' => TRUE,
+        ),
+        'content_template' => array(
+          'type' => 'blob',
+          'size' => 'big',
+          'not null' => TRUE,
+          'description' => 'Configuration of the template to generate the node content.',
+          'serialize' => TRUE,
+        ),
+        'loop_template' => array(
+          'type' => 'blob',
+          'size' => 'big',
+          'not null' => TRUE,
+          'description' => 'Configuration of the template to generate any repeated structures in the node content.',
+          'serialize' => TRUE,
+        ),
+        'content_hash' => array(
+          'type' => 'varchar',
+          'length' => 32, // The length of an MD5 hash.
+          'not null' => TRUE,
+          'default' => '',
+          'description' => 'The hash of the node content.',
+        ),
+        'node_nid' => array(
+          'type' => 'int',
+          'not null' => TRUE,
+          'default' => 0,
+          'unsigned' => TRUE,
+          'description' => 'Nid of the attached node.',
+        ),
+        'node_type' => array(
+          'type' => 'text',
+          'not null' => TRUE,
+          'description' => 'The bundle of the attached node. (e.g. "page")',
+        ),
+        'node_language' => array(
+          'type' => 'text',
+          'not null' => TRUE,
+          'description' => 'The language of the attached node. (e.g. "und")',
+        ),
+        'node_author_uid' => array(
+          'type' => 'int',
+          'not null' => TRUE,
+          'default' => 0,
+          'unsigned' => TRUE,
+          'description' => 'Uid of the owner of the attached node.',
+        ),
+        'node_path_alias' => array(
+          'type' => 'text',
+          'not null' => TRUE,
+          'description' => 'Path alias to use for the URL of the attached node (e.g. "foo/bar")',
+        ),
+        'cron' => array(
+          'type' => 'blob',
+          'size' => 'big',
+          'not null' => TRUE,
+          'description' => 'Configuration of the cron job to import all Sugar Aggregates periodically.',
+          'serialize' => TRUE,
+        ),
+        'revision_operation' => array(
+          'type' => 'int',
+          'not null' => TRUE,
+          'default' => 0,
+          'unsigned' => TRUE,
+          'description' => 'Revisioning policy: 0 - no revision, 1 - yes revision no moderation, 2 - yes revision yes moderation.',
+        ),
+        'revision_condition' => array(
+          'type' => 'int',
+          'not null' => TRUE,
+          'default' => 0,
+          'unsigned' => TRUE,
+          'description' => 'Revisioning policy: 0 - new revision when not pending, 1 - new revision on every save.',
+        ),
+        'imported' => array(
+          'type' => 'int',
+          'not null' => TRUE,
+          'default' => 0,
+          'description' => 'Import date of the Sugar Aggregate, as a Unix timestamp.',
+        ),
+      ),
+      'primary key' => array('id'),
+      'indexes' => array(
+        'id' => array('id'),
+        'content_title' => array('content_title'),
+        'node_author_uid' => array('node_author_uid'),
+        'imported' => array('imported'),
+      ),
+    ),
+  );
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function sugar_aggregate_uninstall() {
+  variable_del('sugar_aggregate_api_url');
+  variable_del('sugar_aggregate_username');
+  variable_del('sugar_aggregate_password_hash');
+  variable_del('sugar_aggregate_api_protocol');
+  variable_del('sugar_aggregate_disable_javascript');
+}

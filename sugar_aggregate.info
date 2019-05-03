@@ -1,0 +1,8 @@
+name = Sugar Aggregate
+description = Aggregates data from SugarCRM into a single node.
+core = 7.x
+php = 5.5
+configure = admin/sugar_aggregate
+
+files[] = includes/SugarCommunicator.inc
+files[] = includes/SugarAggregator.inc
