@@ -57,7 +57,7 @@ abstract class SugarCommunicator {
    * 
    * @var string PLACEHOLDER_REGEX
    */
-  const PLACEHOLDER_REGEX = '/\{\{[^}]+\}\}/';
+  const PLACEHOLDER_REGEX = '/\{\{(([^.]+)\.([^}]+))\}\}/';
 
   /**
    * The pattern to match when inserting the loop
@@ -353,6 +353,7 @@ abstract class SugarCommunicator {
     $moduleName = $sugarQuery->module_name;
     $linkName = $sugarQuery->link_name;
     $skipConditions = $this->parseConditions($sugarAggregate->skip_conditions);
+    $placeholdersInLoop = $this->parsePlaceholders($sugarAggregate->loop_template);
     $moduleEntries = $entryList['module'];
     $relationshipEntries = $entryList['relationship'];
 
@@ -380,30 +381,33 @@ abstract class SugarCommunicator {
           $moduleName => $entryParsed,
           $linkName => $relationshipParsed,
         );
-        $loopHtml = $sugarAggregate->loop_template;
-        foreach ($modulesParsed as $moduleKey => $moduleParsed) {
-          foreach ($moduleParsed as $fieldKey => $value) {
-            $key = "$moduleKey.$fieldKey";
-            $mappedValue = isset($fieldMappings[$moduleKey][$fieldKey][$value])
-              ? $fieldMappings[$moduleKey][$fieldKey][$value]
-              : $value;
-            if ($skipConditions[$key]) {
-              $comp = $skipConditions[$key][0];
-              $compVal = $skipConditions[$key][1];
-              $valueMatches = ($compVal == $value || $compVal == $mappedValue);
-              if (($comp == self::COMP_EQ && $valueMatches) || ($comp == self::COMP_NEQ && !$valueMatches)) {
-                continue 3;
-              }
+        $loopReplacements = array();
+        foreach ($placeholdersInLoop as $placeholderKey => $placeholder) {
+          $moduleKey = $placeholder['moduleKey'];
+          $fieldKey = $placeholder['fieldKey'];
+          $value = isset($modulesParsed[$moduleKey][$fieldKey])
+            ? $modulesParsed[$moduleKey][$fieldKey]
+            : '';
+          $mappedValue = isset($fieldMappings[$moduleKey][$fieldKey][$value])
+            ? $fieldMappings[$moduleKey][$fieldKey][$value]
+            : $value;
+          if (isset($skipConditions[$placeholderKey])) {
+            $comp = $skipConditions[$placeholderKey][0];
+            $compVal = $skipConditions[$placeholderKey][1];
+            $valueMatches = ($compVal == $value || $compVal == $mappedValue);
+            if (($comp == self::COMP_EQ && $valueMatches) || ($comp == self::COMP_NEQ && !$valueMatches)) {
+              $loopReplacements = array();
+              break;
             }
-            $loopHtml = str_replace('{{' . $key . '}}', $mappedValue, $loopHtml);
           }
+          $loopReplacements['{{' . $placeholderKey . '}}'] = $mappedValue;
         }
-        $loopHtml = preg_replace(self::PLACEHOLDER_REGEX, '', $loopHtml);
+        $loopHtml = strtr($sugarAggregate->loop_template, $loopReplacements);
         $loopContent .= $loopHtml;
       }
     }
     $content = $sugarAggregate->content_template;
-    $content = str_replace(self::LOOP_PLACEHOLDER, $loopContent, $content);
+    $content = strtr($content, array(self::LOOP_PLACEHOLDER => $loopContent));
     return $content;
   }
 
@@ -433,6 +437,31 @@ abstract class SugarCommunicator {
       }
     }
     return $parsed;
+  }
+
+  /**
+   * Parses the placeholders from a loop template into a two-dimensional array,
+   *   with the placeholder as the key,
+   *   and an associative array of the placeholder components as the value.
+   *
+   * @param string $loopTemplate
+   *   Loop template as entered on the input form.
+   * 
+   * @return array
+   *   Associative array of placeholder -> placeholder components array.
+   */
+  private function parsePlaceholders($loopTemplate) {
+    $placeholdersInLoop = array();
+    $placeholdersMatches = array();
+    preg_match_all(self::PLACEHOLDER_REGEX, $loopTemplate, $placeholdersMatches, PREG_SET_ORDER);
+    foreach ($placeholdersMatches as $placeholderMatch) {
+      $placeholder = $placeholderMatch[1];
+      $placeholdersInLoop[$placeholder] = array(
+        'moduleKey' => $placeholderMatch[2],
+        'fieldKey' => $placeholderMatch[3],
+      );
+    }
+    return $placeholdersInLoop;
   }
 }
 
