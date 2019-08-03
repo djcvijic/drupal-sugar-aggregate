@@ -135,7 +135,6 @@ function sugar_aggregate_schema() {
       'primary key' => array('id'),
       'indexes' => array(
         'id' => array('id'),
-        'content_title' => array('content_title'),
         'node_author_uid' => array('node_author_uid'),
         'imported' => array('imported'),
       ),
